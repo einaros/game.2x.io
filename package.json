@@ -1,0 +1,13 @@
+{ 
+    "name": "gamey",
+    "version": "0.0.1",
+    "description": "",
+    "author": "",
+    "repository": "",
+    "dependencies": {
+        "express": "2.x.x"
+    },
+    "devDependencies": {
+        "expresso": "0.7.7"
+    }
+}
