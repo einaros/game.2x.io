@@ -1,0 +1,229 @@
+    deleteObject: function() {
+        // delete the body: this.state.world.destroyBody()
+        // delete the object: this.state.scene.removeObject()
+    },
+    addObject: function(body) {
+        //body.id = ++Factory._idCounter;
+        // create new object
+        // add object to this.state.scene
+    },
+createSkybox: function() {
+    var shader = THREE.ShaderUtils.lib["cube"];
+    var r = "Park2/";
+    var urls = [ r + "posx.jpg", r + "negx.jpg",
+                 r + "posy.jpg", r + "negy.jpg",
+                 r + "posz.jpg", r + "negz.jpg" ];
+    var textureCube = THREE.ImageUtils.loadTextureCube(urls);
+    shader.uniforms["tCube"].texture = textureCube;
+    var material = new THREE.MeshShaderMaterial( {
+        fragmentShader: shader.fragmentShader,
+        vertexShader: shader.vertexShader,
+        uniforms: shader.uniforms
+    });
+    var mesh = new THREE.Mesh(new THREE.CubeGeometry(100000, 100000, 100000, 1, 1, 1, null, true), material);
+    this.state.sceneCube.addObject(mesh);
+    return textureCube;
+},
+
+createWrappedMaterial: function(rX, rY, img) {
+    var text = THREE.ImageUtils.loadTexture(img, THREE.UVMapping);
+    text.wrapS = THREE.RepeatWrapping;
+    text.wrapT = THREE.RepeatWrapping;
+    text.minFilter = THREE.LinearFilter;    
+    text.magFilter = THREE.LinearFilter;
+    text.repeat.set(rX, rY);
+    text.needsUpdate = true;
+    var material = new THREE.MeshLambertMaterial({
+        color: 0xffffff, 
+        map: text
+    });
+    return material;
+},
+
+createCheckerMaterial: function() {
+    var imageCanvas = document.createElement("canvas")
+      , context = imageCanvas.getContext("2d")
+      , w = 64;
+    imageCanvas.width = imageCanvas.height = w;
+    context.fillStyle = "#444";
+    context.fillRect(0, 0, w, w);
+    context.fillStyle = "#fff";
+    var hw = w/2;
+    context.fillRect(0, 0, hw, hw);
+    context.fillRect(hw, hw, hw, hw);
+    var textureCanvas = new THREE.Texture(imageCanvas, THREE.UVMapping, THREE.RepeatWrapping, THREE.RepeatWrapping);
+    var materialCanvas = new THREE.MeshLambertMaterial({map: textureCanvas});
+    textureCanvas.minFilter = THREE.LinearFilter;    
+    textureCanvas.magFilter = THREE.LinearFilter;
+    textureCanvas.needsUpdate = true;
+    textureCanvas.repeat.set(100, 1000);
+    return materialCanvas;
+},
+
+pinSpinningActor: function(x, y, speed, m) {
+    var geo = geometries['chocolate'];
+    var bar = createGeometryActor(geo, 0, 500, 380, 5, 0, m, {fixed: false, density: 500});
+    var pin = createPhysicsCube(10, 10, x, y, {fixed: true});
+    bodies.push(pin);
+    var jd = new b2RevoluteJointDef();
+    jd.body1 = pin;
+    jd.body2 = bar;
+    jd.anchorPoint = bar.GetWorldCenter();
+    jd.collideConnected = false;
+    jd.maxMotorTorque = 500000;
+    jd.motorSpeed = speed;
+    jd.enableMotor = true;
+    world.CreateJoint(jd);
+},
+
+createSphereActor: function(r, x, y, z, params) {
+    params = params||{};
+    var body = createPhysicsSphere(r, x, y, params);
+    body.object = createSphere(r, new THREE.Vector3(x, y, z), params);
+    bodies.push(body);
+    scene.addObject(body.object);
+    return body;
+},
+
+createCubeActor: function(w, h, d, x, y, z, params) {
+    params = params||{};
+    var body = createPhysicsCube(w, h, x, y, params);
+    body.object = createCube(new THREE.Vector3(w, h, d), new THREE.Vector3(x, y, z), params);
+    bodies.push(body);
+    scene.addObject(body.object);
+    return body;
+},
+
+createGeometryActor: function(geometry, x, y, w, h, a, m, params) {
+    params = params||{};
+    var object = createGeometryMesh(
+        geometry, 
+        new THREE.Vector3(x, y, 0), 
+        m, 
+        { 
+            scaleX: valOrDef(params.scaleX, 250), 
+            scaleY: valOrDef(params.scaleY, 250), 
+            scaleZ: valOrDef(params.scaleZ, 250) 
+        }
+    );
+    var body = createPhysicsCubeFromObject(object, {
+        w: w,
+        h: h,
+        angle: a,
+        restitution: 0.01,
+        fixed: valOrDef(params.fixed, true)
+    });
+    bodies.push(body);
+    body.object = object;
+    return body;
+},			
+
+createPhysicsSphere: function(r, x, y, params) {
+    params = params||{};
+    var bodyDef = new b2BodyDef();
+    bodyDef.position.Set(x / physicsScale, y / physicsScale);
+    var body = world.CreateBody(bodyDef);
+    var shapeDef = new b2CircleDef();
+    
+    shapeDef.radius = r / physicsScale;
+    shapeDef.restitution = valOrDef(params.restitution, 0.5);
+    if (!params.fixed) shapeDef.density = valOrDef(params.density, 1.0);
+    shapeDef.friction = valOrDef(params.friction, 1);
+    body.CreateShape(shapeDef);
+    body.SetMassFromShapes();
+    body.w = 1.0;
+    body.h = 1.0;
+    return body;
+},
+
+createPhysicsCube: function(w, h, x, y, params) {
+    params = params||{};
+    var bodyDef = new b2BodyDef();
+    bodyDef.position.Set(x / physicsScale, y / physicsScale);
+    var body = world.CreateBody(bodyDef);
+    var shapeDef = new b2PolygonDef();
+    shapeDef.SetAsBox((w/2) / physicsScale, (h/2) / physicsScale);
+    shapeDef.restitution = valOrDef(params.restitution, 0.5);
+    if (!params.fixed) shapeDef.density = valOrDef(params.density, 1.0);
+    shapeDef.friction = valOrDef(params.friction, 1);
+    body.CreateShape(shapeDef);
+    body.SetMassFromShapes();
+    body.w = 1.0;
+    body.h = 1.0;
+    return body;
+},
+
+createPhysicsCubeFromObject: function(object, params) {
+    params = params||{};
+    var w = params.w;
+    var h = params.h;
+    var x = object.position.x * physicsScale;
+    var y = object.position.y * physicsScale;
+    var bodyDef = new b2BodyDef();
+    bodyDef.position.Set(x / physicsScale, y / physicsScale);
+    var body = world.CreateBody(bodyDef);
+    var shapeDef = new b2PolygonDef();
+    shapeDef.SetAsBox(w / physicsScale, h / physicsScale);
+    shapeDef.restitution = valOrDef(params.restitution, 0.5);
+    if (!params.fixed) shapeDef.density = valOrDef(params.density, 1.0);
+    shapeDef.friction = valOrDef(params.friction, 1);
+    body.CreateShape(shapeDef);
+    body.SetMassFromShapes();
+    body.w = 1.0;
+    body.h = 1.0;
+    if (params.angle) {
+        var p = body.GetPosition();
+        body.SetXForm(p, params.angle);
+    }
+    return body;
+},
+
+createPyramid: function(r, h, p, m) {
+    var mesh = new THREE.Mesh(
+        new THREE.CylinderGeometry(4, 1, r, h), 
+        m || new THREE.MeshLambertMaterial({ color: 0xffffff })
+    );
+    mesh.position = p;
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    scene.addObject(mesh);
+    return mesh;
+},
+
+createCube: function(s, p, params) {
+    var cube = new THREE.Mesh(
+        new THREE.CubeGeometry(s.x, s.y, s.z, valOrDef(params.segmentsX, 1), valOrDef(params.segmentsY, 1), valOrDef(params.segmentsZ, 1)),
+        params.material || new THREE.MeshLambertMaterial({color: 0xffffff})
+    );
+    cube.position = p;
+    cube.castShadow = true;
+    cube.receiveShadow = true;
+    scene.addObject(cube);
+    return cube;
+},
+
+createSphere: function(r, p, params) {
+    var sphere = new THREE.Mesh (
+        new THREE.SphereGeometry(r, 100, 100),
+        params.material || new THREE.MeshLambertMaterial({color: 0xffffff})
+    );
+    sphere.castShadow = true;
+    sphere.receiveShadow = true;
+    sphere.position = p;
+    return sphere;
+},
+
+createGeometryMesh: function(geometry, p, m, params) {
+    params = params||{};
+    mesh = new THREE.Mesh(
+        geometry, 
+        m || new THREE.MeshLambertMaterial({color: 0x603003, opacity: 1, shading: THREE.FlatShading, wireframe: false, wireframeLinewidth: 2})
+    );
+    mesh.position = p;
+    mesh.scale.x = valOrDef(params.scaleX, 1);
+    mesh.scale.y = valOrDef(params.scaleY, 1);
+    mesh.scale.z = valOrDef(params.scaleZ, 1);
+    scene.addObject(mesh);
+    return mesh;
+},
+
