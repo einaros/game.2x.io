@@ -20,6 +20,7 @@ function init() {
     window.onkeydown = Game.onKeyDown.bind(Game);
     window.onkeyup = Game.onKeyUp.bind(Game);
     Game.init(container);
+    showSplash('This is the start of a WebGL game, utilizing Three.js and box2d.\nFor the time being it isn\'t very feature rich - but that will change in time!\n\nFor updates, hit me up on twitter: <a href="http://twitter.com/einaros" target="_blank">@einaros</a>.', -1, true);
 }
 
 var Game = (function() {
