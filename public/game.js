@@ -47,6 +47,8 @@ var Game = (function() {
             physicsScale: 20,
             gravity: -20,
             playerForce: 10000,
+            superchargeDelay: 10000,
+            superchargeMultiplyer: 5,
             playerStartOffset: {x: 200, y: 200}
         },
         state: {
@@ -79,7 +81,7 @@ var Game = (function() {
             this.state.camera.position.z = 1200;
             this.state.scene = new THREE.Scene();
             this.state.sceneCube = new THREE.Scene();
-            this.state.scene.fog = new THREE.Fog(0x000000, 600, 6000);
+            this.state.scene.fog = new THREE.Fog(0xffffff, 600, 6000);
             projector = new THREE.Projector();
             this.state.renderer = new THREE.WebGLRenderer({antialias: true});
             this.state.renderer.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -174,6 +176,15 @@ var Game = (function() {
                 if (v) this.state.player.ApplyTorque(v);
             }
         },
+        superCharge: function() {
+            var now = Date.now();
+            if (this._previousCharge && now - this._previousCharge < this.config.superchargeDelay) {
+                document.getElementById('gameInfo').innerText = 'SuperCharge ready in ' + Math.ceil((this.config.superchargeDelay - (now - this._previousCharge)) / 1000) + 's';
+                return;
+            }
+            this._previousCharge = now;
+            this.state.player.SetAngularVelocity(this.state.player.GetAngularVelocity() * this.config.superchargeMultiplyer);
+        },
         stepFrame: function() {
             this.controlPlayerSpeed();
             this.state.world.Step(1.0/30.0, 10);
@@ -242,6 +253,9 @@ var Game = (function() {
             wall.position.x = w/2 + this.config.mapOffset;
             wall.doubleSided = true;
             this.state.scene.addObject(wall);
+
+            var start = this.factory.createCubeActor(100, wallHeight, slopeWidth, this.config.mapOffset - 100, 200, 0, {fixed: true, material: null});
+            this.trackActor(start);
             
             // Slope ground
             var actors = this.factory.createChainActor(points, this.config.mapOffset, 0, 2, {material: slopeMaterial, restitution: 0.1, fixed: true});
@@ -283,6 +297,7 @@ var Game = (function() {
             else if (event.which == 40) this.state.input.d = true;
             else if (event.which == 37) this.state.input.l = true;
             else if (event.which == 39) this.state.input.r = true;
+            else if (event.which == 32) this.superCharge();
         },
         onKeyUp: function(event) {
             if (event.which == 38) this.state.input.u = false;

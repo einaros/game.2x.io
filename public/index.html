@@ -22,6 +22,18 @@
             opacity: 0.5;
             color: #fff;
             padding: 10px;
+            text-align: right;
+        }
+        #gameInfo {
+            position: absolute;
+            top: 0;
+            left: 40%;
+            right: 40%;
+            background: #000;
+            opacity: 0.5;
+            color: #fff;
+            padding: 10px;
+            height: 50px;
         }
         #link {
             position: absolute;
@@ -57,16 +69,6 @@
             text-align: left;
             z-index:100;
         }
-        #options {
-            position: absolute;
-            top: 10px; left: 10px; width: 800px;
-            color: #000000;
-            padding: 5px;
-            font-family: Monospace;
-            font-size: 13px;
-            text-align: left;
-            z-index:100;
-        }
         #canvas {
             z-index: 5000;
             position: absolute;
@@ -85,9 +87,12 @@
     </head>
     <body onload="init();">
         <div id="info"></div>
-        <div id="options"></div>
         <div id="scene"></div>
-        <div id="keys">Arrow keys: Press them.</div>
+        <div id="gameInfo"></div>
+        <div id="keys">
+            Torque: Left and right arrows.<br/>
+            Supercharge: Spacebar.<br/>
+        </div>
         <div id="link"><a href="http://2x.io">Back to 2x.io</a></div>
     </body>
 </html>
