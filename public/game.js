@@ -38,7 +38,7 @@ var Game = (function() {
     var Game = {
         config: {
             mapOffset: -100,
-            mapWidth: 1000000,
+            mapWidth: 200000,
             groundThickness: 50,
             maxPlayerAngularVelocity: 10,
             floorWidth: 10000,
@@ -46,7 +46,8 @@ var Game = (function() {
             groundDepth: 400,
             physicsScale: 20,
             gravity: -20,
-            playerForce: 10000
+            playerForce: 10000,
+            playerStartOffset: {x: 200, y: 200}
         },
         state: {
             idCounter: 0,
@@ -108,8 +109,8 @@ var Game = (function() {
             //var textureCube = createSkybox();
             var floorMaterial = this.createWrappedMaterial(100, 1, 'path90.jpg');
             var wallMaterial = this.createWrappedMaterial(100, 2, 'stone.jpg');
-            var wireMaterial = new THREE.MeshBasicMaterial( { color: 0xffffff, shading: THREE.FlatShading, wireframe: true } );
-            var woodMaterial = new THREE.MeshLambertMaterial({wireframe: true, color: 0xffffff, map: THREE.ImageUtils.loadTexture('wood.jpg', THREE.UVMapping)});
+            var wireMaterial = new THREE.MeshBasicMaterial({color: 0xbababe, shading: THREE.FlatShading, wireframe: true});
+            var woodMaterial = new THREE.MeshLambertMaterial({color: 0xffffff, map: THREE.ImageUtils.loadTexture('wood.jpg', THREE.UVMapping)});
             var ballMaterial = new THREE.MeshLambertMaterial({color: 0xffffff, map: THREE.ImageUtils.loadTexture('ball.jpg', THREE.UVMapping)});
             //var ballMaterial = new THREE.MeshPhongMaterial({color: 0xffffff, map: THREE.ImageUtils.loadTexture('marble.jpg', THREE.UVMapping), envMap: null/*textureCube*/, combine: THREE.MixOperation, reflectivity: 0.1});
             this.initPhysics();
@@ -120,6 +121,21 @@ var Game = (function() {
             //this.state.camera.target = this.state.player.object;
             this.state.cameraCube.target = this.state.player.object;
             this.state.sun.target = this.state.player.object;
+
+            /*for (var i = 0; i < 10; ++i) {
+                var x = Math.random() * 2000 + 200;
+                var y = Math.random() * 500 + 100;
+                var actor = this.factory.createSphereActor(Math.random() * 50 + 50, x, y, 0, {material: woodMaterial});
+                this.trackActor(actor);
+            }*/
+            for (var i = 0; i < 500; ++i) {
+                var x = Math.random() * this.config.mapWidth;
+                var y = Math.random() * 500 + 100;
+                var w = Math.random() * 200 + 25;
+                var h = Math.random() * 200 + 25;
+                var actor = this.factory.createCubeActor(w, h, 100, x, y, 0, {material: woodMaterial, density: 0.2});
+                this.trackActor(actor);
+            } 
 
             this.state.stats = new Stats();
             this.state.stats.domElement.style.position = 'absolute';
@@ -140,7 +156,7 @@ var Game = (function() {
             this.state.bodies.push(actor);
         },
         createPlayer: function(ballMaterial) {
-            this.state.player = this.factory.createSphereActor(100, 0, 200, 0, {density: 1, restitution: 0.1, material: ballMaterial});
+            this.state.player = this.factory.createSphereActor(100, this.config.playerStartOffset.x, this.config.playerStartOffset.y, 0, {density: 1, restitution: 0.1, material: ballMaterial});
             this.trackActor(this.state.player);
             this.state.player.SetBullet(true);
         },
@@ -189,7 +205,7 @@ var Game = (function() {
             this.state.renderer.render(this.state.scene, this.state.camera);
         },
         createSlopes: function(slopeMaterial, wallMaterial) {
-            var w = 200000;
+            var w = this.config.mapWidth;
             var wpm = 0.005;
             var ws = w * wpm;
 

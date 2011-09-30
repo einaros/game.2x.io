@@ -163,7 +163,7 @@ var Factory = (function() {
 
     Factory.prototype.createSphere = function(r, p, params) {
         var sphere = new THREE.Mesh (
-            new THREE.SphereGeometry(r, 100, 100),
+            new THREE.SphereGeometry(r, valOrDef(params.segmentsW, 20), valOrDef(params.segmentsH, 20)),
             params.material || new THREE.MeshLambertMaterial({color: 0xffffff})
         );
         sphere.castShadow = true;
