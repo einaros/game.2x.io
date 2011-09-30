@@ -180,11 +180,21 @@ var Game = (function() {
         superCharge: function() {
             var now = Date.now();
             if (this._previousCharge && now - this._previousCharge < this.config.superchargeDelay) {
-                document.getElementById('gameInfo').innerText = 'SuperCharge ready in ' + Math.ceil((this.config.superchargeDelay - (now - this._previousCharge)) / 1000) + 's';
                 return;
             }
             this._previousCharge = now;
             this.state.player.SetAngularVelocity(this.state.player.GetAngularVelocity() * this.config.superchargeMultiplyer);
+            var timerId = setInterval((function() { 
+                var now = Date.now();
+                var remains = Math.ceil((this.config.superchargeDelay - (now - this._previousCharge)) / 1000);
+                if (remains <= 0) {
+                    clearInterval(timerId);
+                    document.getElementById('gameInfo').innerText = 'SuperCharge ready!';
+                }
+                else {
+                    document.getElementById('gameInfo').innerText = 'SuperCharge ready in ' + remains + 's';
+                }
+            }).bind(this), 1000);
         },
         stepFrame: function() {
             this.controlPlayerSpeed();
