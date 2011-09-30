@@ -106,10 +106,10 @@ var Game = (function() {
             this.state.scene.addLight(this.state.sun);
 
             //var textureCube = createSkybox();
-            var floorMaterial = this.createWrappedMaterial(100, 1, 'woodsquare.jpg');
+            var floorMaterial = this.createWrappedMaterial(100, 1, 'path90.jpg');
+            var wallMaterial = this.createWrappedMaterial(100, 2, 'stone.jpg');
             var wireMaterial = new THREE.MeshBasicMaterial( { color: 0xffffff, shading: THREE.FlatShading, wireframe: true } );
             var woodMaterial = new THREE.MeshLambertMaterial({wireframe: true, color: 0xffffff, map: THREE.ImageUtils.loadTexture('wood.jpg', THREE.UVMapping)});
-            var wallMaterial = new THREE.MeshLambertMaterial({color: 0xffffff, map: THREE.ImageUtils.loadTexture('woodsquare.jpg', THREE.UVMapping)});
             var ballMaterial = new THREE.MeshLambertMaterial({color: 0xffffff, map: THREE.ImageUtils.loadTexture('ball.jpg', THREE.UVMapping)});
             //var ballMaterial = new THREE.MeshPhongMaterial({color: 0xffffff, map: THREE.ImageUtils.loadTexture('marble.jpg', THREE.UVMapping), envMap: null/*textureCube*/, combine: THREE.MixOperation, reflectivity: 0.1});
             this.initPhysics();
@@ -126,7 +126,7 @@ var Game = (function() {
             this.state.stats.domElement.style.top = '0px';
             container.appendChild(this.state.stats.domElement);
 
-            this.createSlopes(floorMaterial);
+            this.createSlopes(floorMaterial, wallMaterial);
 
             this.animate();
         },
@@ -170,10 +170,12 @@ var Game = (function() {
                 body.object.position.y = t.position.y * this.config.physicsScale;
                 body.object.rotation.z = body.GetAngle();
             }
-            var v = this.state.player.GetLinearVelocity().x;
+            var vx = this.state.player.GetLinearVelocity().x;
+            var vy = this.state.player.GetLinearVelocity().y;
+            var vd = vy > 0 ? 1 : -1;
             this.state.camera.position.x += (this.state.player.object.position.x - this.state.camera.position.x) * .05;
-            this.state.camera.position.y += (this.state.player.object.position.y - this.state.camera.position.y) * .1;
-            this.state.camera.target.position.x += (this.state.player.object.position.x + v*70 - this.state.camera.target.position.x) * 0.02;
+            this.state.camera.position.y += ((this.state.player.object.position.y + vx*5) - this.state.camera.position.y) * .1;
+            this.state.camera.target.position.x += ((this.state.player.object.position.x + vx*70) - this.state.camera.target.position.x) * 0.02;
             this.state.camera.target.position.y = this.state.player.object.position.y;
             this.state.camera.target.position.z = this.state.player.object.position.z;
             this.state.cameraCube.position.x = this.state.camera.position.x;
@@ -186,27 +188,44 @@ var Game = (function() {
             //this.state.renderer.render(this.state.sceneCube, this.state.cameraCube);
             this.state.renderer.render(this.state.scene, this.state.camera);
         },
-        createSlopes: function(slopeMaterial) {
+        createSlopes: function(slopeMaterial, wallMaterial) {
             var w = 200000;
             var wpm = 0.005;
             var ws = w * wpm;
+
+            var slopeWidth = 1000;
+            var slopeHalfWidth = slopeWidth / 2;
+            var wallHeight = 5000;
+
+            var wallGeometry = new THREE.PlaneGeometry(w, 1000, ws, 1);
             var slopeGeometry = new THREE.PlaneGeometry(w, 1000, ws, 10);
             var points = [];
             var maxH = 300 + 500;
+            
             for (var x = 0; x < ws + 1; ++x) {
                 for (var y = 0; y < 11; ++y) {
                     var h = (x*-40) + Math.sin(Math.PI / 11 * y) * 300 + Math.sin(Math.PI / (ws+1) * 200 * x) * 100 - maxH/2;
                     if (y == 5) points.push({ x: x * (w/ws), y: h });
                     slopeGeometry.vertices[x + y * (ws + 1)].position.z = h;
                 }
-                //slopeGeometry.vertices[x + 0 * (ws + 1)].position.z = 
-                    //slopeGeometry.vertices[x + 1 * (ws + 1)].position.z + 5000;
+                var vpTop = wallGeometry.vertices[x].position;
+                var vpBottom = wallGeometry.vertices[x + 1 * (ws + 1)].position;
+                var slopeVec = slopeGeometry.vertices[x + 1 * (ws + 1)].position;
+                vpTop.z = vpBottom.z = slopeHalfWidth;
+                vpTop.y = slopeVec.z;
+                vpBottom.y = slopeVec.z - wallHeight;
             }
+
             var slope = new THREE.Mesh(slopeGeometry, slopeMaterial);
             slope.position.x = w/2 + this.config.mapOffset;
             slope.doubleSided = false;
             slope.rotation.x = -Math.PI / 2;
             this.state.scene.addObject(slope);
+
+            var wall = new THREE.Mesh(wallGeometry, wallMaterial);
+            wall.position.x = w/2 + this.config.mapOffset;
+            wall.doubleSided = true;
+            this.state.scene.addObject(wall);
             
             // Slope ground
             var actors = this.factory.createChainActor(points, this.config.mapOffset, 0, 2, {material: slopeMaterial, restitution: 0.1, fixed: true});
