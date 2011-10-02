@@ -20,7 +20,7 @@ function init() {
     window.onkeydown = Game.onKeyDown.bind(Game);
     window.onkeyup = Game.onKeyUp.bind(Game);
     Game.init(container);
-    showSplash('<center>This is the start of a WebGL game, utilizing Three.js and box2d.\nFor the time being it isn\'t very feature rich - but that will change in time!\n\nFor updates, hit me up on twitter: <a href="http://twitter.com/einaros" target="_blank">@einaros</a>.\n\nNote that while multiple browsers now support WebGL,\nI\'ve found that Chrome renders this best.</center>', -1, true);
+    //showSplash('<center>This is the start of a WebGL game, utilizing Three.js and box2d.\nFor the time being it isn\'t very feature rich - but that will change in time!\n\nFor updates, hit me up on twitter: <a href="http://twitter.com/einaros" target="_blank">@einaros</a>.\n\nNote that while multiple browsers now support WebGL,\nI\'ve found that Chrome renders this best.</center>', -1, true);
 }
 
 var Game = (function() {
@@ -48,8 +48,11 @@ var Game = (function() {
             physicsScale: 20,
             gravity: -20,
             playerForce: 10000,
-            superchargeDelay: 10000,
+            superchargeDelay: 5000,
+            normalFov: 50,
+            superchargeFov: 90,
             superchargeMultiplyer: 5,
+            superchargeForce: 200000,
             playerStartOffset: {x: 200, y: 200}
         },
         state: {
@@ -112,6 +115,7 @@ var Game = (function() {
             //var textureCube = createSkybox();
             var floorMaterial = this.createWrappedMaterial(100, 1, 'path90.jpg');
             var wallMaterial = this.createWrappedMaterial(100, 2, 'stone.jpg');
+            var slopeBoundaryMaterial = this.createWrappedMaterial(0.2, 4, 'stone.jpg');
             var wireMaterial = new THREE.MeshBasicMaterial({color: 0xbababe, shading: THREE.FlatShading, wireframe: true});
             var woodMaterial = new THREE.MeshLambertMaterial({color: 0xffffff, map: THREE.ImageUtils.loadTexture('wood.jpg', THREE.UVMapping)});
             var ballMaterial = new THREE.MeshLambertMaterial({color: 0xffffff, map: THREE.ImageUtils.loadTexture('ball.jpg', THREE.UVMapping)});
@@ -145,7 +149,7 @@ var Game = (function() {
             this.state.stats.domElement.style.top = '0px';
             container.appendChild(this.state.stats.domElement);
 
-            this.createSlopes(floorMaterial, wallMaterial);
+            this.createSlopes(floorMaterial, wallMaterial, slopeBoundaryMaterial);
 
             this.animate();
         },
@@ -177,6 +181,20 @@ var Game = (function() {
                 if (v) this.state.player.ApplyTorque(v);
             }
         },
+        setFov: function(f) {
+            this.state.camera.fov = f;
+            this.state.camera.updateProjectionMatrix();
+        },
+        setAnim: function(delay, interval, fn, arg) {
+            fn = fn.bind(this);
+            var setup = function() {
+                var id = setInterval(function() {
+                    if (fn(arg)) clearInterval(id);
+                }, interval);
+            }
+            if (delay == 0) setup();
+            else setTimeout(setup, delay);
+        },
         superCharge: function() {
             var now = Date.now();
             if (this._previousCharge && now - this._previousCharge < this.config.superchargeDelay) {
@@ -184,6 +202,20 @@ var Game = (function() {
             }
             this._previousCharge = now;
             this.state.player.SetAngularVelocity(this.state.player.GetAngularVelocity() * this.config.superchargeMultiplyer);
+            var f = (this.state.player.GetLinearVelocity().x < 0 ? -1 : 1) * this.config.superchargeForce;
+            this.state.player.ApplyForce(new b2Vec2(f, 0, 0), this.state.player.GetWorldCenter());
+            this.setFov(this.config.superchargeFov);
+            this.setAnim(2000, 1000/60, function(arg) {
+                arg.f -= 0.5;
+                var done = false;
+                if (arg.f < this.config.normalFov) {
+                    arg.f = this.config.normalFov;
+                    done = true;
+                }
+                this.setFov(arg.f);
+                return done;
+            }, {f: this.config.superchargeFov});
+            // Add a countdown
             var timerId = setInterval((function() { 
                 var now = Date.now();
                 var remains = Math.ceil((this.config.superchargeDelay - (now - this._previousCharge)) / 1000);
@@ -226,7 +258,7 @@ var Game = (function() {
             //this.state.renderer.render(this.state.sceneCube, this.state.cameraCube);
             this.state.renderer.render(this.state.scene, this.state.camera);
         },
-        createSlopes: function(slopeMaterial, wallMaterial) {
+        createSlopes: function(slopeMaterial, wallMaterial, startMaterial) {
             var w = this.config.mapWidth;
             var wpm = 0.005;
             var ws = w * wpm;
@@ -265,8 +297,12 @@ var Game = (function() {
             wall.doubleSided = true;
             this.state.scene.addObject(wall);
 
-            var start = this.factory.createCubeActor(100, wallHeight, slopeWidth, this.config.mapOffset - 100, 200, 0, {fixed: true, material: null});
+            var startHeight = 3000;
+            var start = this.factory.createCubeActor(100, wallHeight, slopeWidth, this.config.mapOffset - 50, -wallHeight/2 + points[0].y + startHeight, 0, {fixed: true, material: startMaterial});
             this.trackActor(start);
+            var endHeight = 3000;
+            var end = this.factory.createCubeActor(100, wallHeight, slopeWidth, this.config.mapOffset + this.config.mapWidth + 50, -wallHeight/2 + points[points.length - 1].y + endHeight, 0, {fixed: true, material: startMaterial});
+            this.trackActor(end);
             
             // Slope ground
             var actors = this.factory.createChainActor(points, this.config.mapOffset, 0, 2, {material: slopeMaterial, restitution: 0.1, fixed: true});
