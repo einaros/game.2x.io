@@ -17,7 +17,7 @@ var Coordinator = (function() {
         getMapDrawing: function(mapWidth, segments, container, complete) {
             var cleaners = [];
             // setup canvas
-            var aspect = 10/30;
+            var aspect = 10/20;
             var canvas = $('<canvas>');
             canvas.css({
                 background: '#888888',
@@ -41,8 +41,20 @@ var Coordinator = (function() {
             var endZone = 20;
             var startRect = new paper.Path.Rectangle(new paper.Rectangle(new paper.Point(0, 0), new paper.Point(startZone, paper.view.size.height)));
             startRect.fillColor = '#aaaaaa';
+            var startText = new paper.PointText(new paper.Point(startZone / 2, paper.view.size.height / 2));
+            startText.fillColor = 'white';
+            startText.content = "Start Drawing Here!";
+            startText.rotate(-90);
+            startText.position.x = 0.5 * (startZone + 7);
+            startText.position.y = 0.5 * (paper.view.size.height + 110);
             var endRect = new paper.Path.Rectangle(new paper.Rectangle(new paper.Point(paper.view.size.width - endZone, 0), new paper.Point(paper.view.size.width, paper.view.size.height)));
             endRect.fillColor = '#aaaaaa';
+            var endText = new paper.PointText(new paper.Point(0, 0));
+            endText.fillColor = 'white';
+            endText.content = "End Drawing Here!";
+            endText.rotate(-90);
+            endText.position.x = paper.view.size.width - 0.5 * (endZone - 10);
+            endText.position.y = 0.5 * (paper.view.size.height + 100);
             var lastPointX = -1;
             var path = new paper.Path();
             var tool = new paper.Tool();
