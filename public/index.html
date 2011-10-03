@@ -19,6 +19,9 @@
 			text-decoration: none;
 			color: #5555FF;
 		}
+        .gameHUD {
+            display: none;
+        }
         #keys {
             position: absolute;
             right: 0;
@@ -54,6 +57,9 @@
             box-align: center;
             -moz-box-align: center;
             -webkit-box-align: center;
+            box-pack: center;
+            -moz-box-pack: center;
+            -webkit-box-pack: center;
             display: -moz-box;
             display: -webkit-box;
             display: box;
@@ -70,6 +76,7 @@
         }
         </style>
         <script type="text/javascript" src="jquery.js"></script>
+        <script type="text/javascript" src="paper.js"></script>
         <script type="text/javascript" src="splash.js"></script>
         <script type="text/javascript" src="box2d.js"></script>
         <script type="text/javascript" src="Three.js"></script>
@@ -77,13 +84,15 @@
         <script type="text/javascript" src="RequestAnimationFrame.js"></script>
         <script type="text/javascript" src="Stats.js"></script>
         <script type="text/javascript" src="Factory.js"></script>
-        <script type="text/javascript" src="game.js"></script>
+        <script type="text/javascript" src="shared.js"></script>
+        <script type="text/javascript" src="Coordinator.js"></script>
+        <script type="text/javascript" src="Game.js"></script>
     </head>
-    <body onload="init();">
-        <div id="info"></div>
-        <div id="gameInfo"></div>
+    <body onload="Coordinator.init();">
+        <div id="info" class="gameHUD"></div>
+        <div id="gameInfo" class="gameHUD"></div>
         <div id="scene"></div>
-        <div id="keys">
+        <div id="keys" class="gameHUD">
             Torque: Left and right arrows.<br/>
             Supercharge: Spacebar.<br/>
         </div>

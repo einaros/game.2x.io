@@ -1,28 +1,3 @@
-var SCREEN_WIDTH = window.innerWidth
-  , SCREEN_HEIGHT = 400
-  , SCREEN_HALFWIDTH = SCREEN_WIDTH / 2
-  , SCREEN_HALFHEIGHT = SCREEN_HEIGHT / 2;
-
-function valOrDef(property, def) {
-    return typeof property != 'undefined' ? property : def;
-}
-  
-function init() {
-    if (!Detector.webgl) {
-        Detector.addGetWebGLMessage();
-        return;
-    }
-    container = document.createElement('div');
-    document.getElementById('scene').appendChild(container);
-    info = document.getElementById('info');
-    window.onresize = Game.onWindowResize.bind(Game);
-    container.onmousemove = Game.onMouseMove.bind(Game);
-    window.onkeydown = Game.onKeyDown.bind(Game);
-    window.onkeyup = Game.onKeyUp.bind(Game);
-    Game.init(container);
-    //showSplash('<center>This is the start of a WebGL game, utilizing Three.js and box2d.\nFor the time being it isn\'t very feature rich - but that will change in time!\n\nFor updates, hit me up on twitter: <a href="http://twitter.com/einaros" target="_blank">@einaros</a>.\n\nNote that while multiple browsers now support WebGL,\nI\'ve found that Chrome renders this best.</center>', -1, true);
-}
-
 var Game = (function() {
     var b2AABB = Box2D.Collision.b2AABB;
     var b2Vec2 = Box2D.Common.Math.b2Vec2;
@@ -40,6 +15,7 @@ var Game = (function() {
         config: {
             mapOffset: -100,
             mapWidth: 200000,
+            mapSegments: 200000 * 0.005,
             groundThickness: 50,
             maxPlayerAngularVelocity: 10,
             floorWidth: 10000,
@@ -78,7 +54,13 @@ var Game = (function() {
             geometries: {},
         },
         _idCounter: 0,
-        init: function(container) {
+        init: function(container, points) {
+            window.onresize = this.onWindowResize.bind(this);
+            container.onmousemove = Game.onMouseMove.bind(this);
+            window.onkeydown = Game.onKeyDown.bind(this);
+            window.onkeyup = Game.onKeyUp.bind(this);
+            $('.gameHUD').fadeIn();
+
             this.state.camera = new THREE.Camera(0, SCREEN_WIDTH / SCREEN_HEIGHT, 1, 10000);
             this.state.cameraCube = new THREE.Camera(0, SCREEN_WIDTH / SCREEN_HEIGHT, 1, 100000);
             this.state.cameraCube.position.z = 1200;
@@ -124,8 +106,9 @@ var Game = (function() {
             this.factory = new Factory(this.state.world, this.config.physicsScale);
             //this.createGround(wireMaterial);
             
-            this.createPlayer(ballMaterial);
-            //this.state.camera.target = this.state.player.object;
+            points = this.createSlopes(floorMaterial, wallMaterial, slopeBoundaryMaterial, points);
+            this.createPlayer(points[0].y + 500, ballMaterial);
+            this.state.camera.target.position = this.state.player.object.position.clone();
             this.state.cameraCube.target = this.state.player.object;
             this.state.sun.target = this.state.player.object;
 
@@ -136,20 +119,19 @@ var Game = (function() {
                 this.trackActor(actor);
             }*/
             for (var i = 0; i < 500; ++i) {
-                var x = Math.random() * this.config.mapWidth;
-                var y = Math.random() * 500 + 100;
+                var pt = Math.round(Math.random() * (points.length - 1));
+                var x = points[pt].x;
+                var y = points[pt].y + 500;
                 var w = Math.random() * 200 + 25;
                 var h = Math.random() * 200 + 25;
                 var actor = this.factory.createCubeActor(w, h, 100, x, y, 0, {material: woodMaterial, density: 0.2});
                 this.trackActor(actor);
-            } 
+            }
 
             this.state.stats = new Stats();
             this.state.stats.domElement.style.position = 'absolute';
             this.state.stats.domElement.style.top = '0px';
             container.appendChild(this.state.stats.domElement);
-
-            this.createSlopes(floorMaterial, wallMaterial, slopeBoundaryMaterial);
 
             this.animate();
         },
@@ -162,8 +144,8 @@ var Game = (function() {
             if (actor.object) this.state.scene.addObject(actor.object);
             this.state.bodies.push(actor);
         },
-        createPlayer: function(ballMaterial) {
-            this.state.player = this.factory.createSphereActor(100, this.config.playerStartOffset.x, this.config.playerStartOffset.y, 0, {density: 1, restitution: 0.1, material: ballMaterial});
+        createPlayer: function(startHeight, ballMaterial) {
+            this.state.player = this.factory.createSphereActor(100, this.config.playerStartOffset.x, startHeight, 0, {density: 1, restitution: 0.1, material: ballMaterial});
             this.trackActor(this.state.player);
             this.state.player.SetBullet(true);
         },
@@ -244,9 +226,9 @@ var Game = (function() {
             var vy = this.state.player.GetLinearVelocity().y;
             var vd = vy > 0 ? 1 : -1;
             this.state.camera.position.x += (this.state.player.object.position.x - this.state.camera.position.x) * .05;
-            this.state.camera.position.y += ((this.state.player.object.position.y + vx*5) - this.state.camera.position.y) * .1;
+            this.state.camera.position.y += ((this.state.player.object.position.y + vx*5 + vy*-20) - this.state.camera.position.y) * .1;
             this.state.camera.target.position.x += ((this.state.player.object.position.x + vx*70) - this.state.camera.target.position.x) * 0.02;
-            this.state.camera.target.position.y = this.state.player.object.position.y;
+            this.state.camera.target.position.y += ((this.state.player.object.position.y + vy*70) - this.state.camera.target.position.y) * 0.02;
             this.state.camera.target.position.z = this.state.player.object.position.z;
             this.state.cameraCube.position.x = this.state.camera.position.x;
             this.state.cameraCube.position.y = this.state.camera.position.y;
@@ -258,10 +240,9 @@ var Game = (function() {
             //this.state.renderer.render(this.state.sceneCube, this.state.cameraCube);
             this.state.renderer.render(this.state.scene, this.state.camera);
         },
-        createSlopes: function(slopeMaterial, wallMaterial, startMaterial) {
+        createSlopes: function(slopeMaterial, wallMaterial, startMaterial, mapPoints) {
             var w = this.config.mapWidth;
-            var wpm = 0.005;
-            var ws = w * wpm;
+            var ws = this.config.mapSegments;
 
             var slopeWidth = 1000;
             var slopeHalfWidth = slopeWidth / 2;
@@ -271,10 +252,16 @@ var Game = (function() {
             var slopeGeometry = new THREE.PlaneGeometry(w, 1000, ws, 10);
             var points = [];
             var maxH = 300 + 500;
-            
+
+            var gotPoints = typeof mapPoints != 'undefined';
+
             for (var x = 0; x < ws + 1; ++x) {
                 for (var y = 0; y < 11; ++y) {
-                    var h = (x*-40) + Math.sin(Math.PI / 11 * y) * 300 + Math.sin(Math.PI / (ws+1) * 200 * x) * 100 - maxH/2;
+                    var h;
+                    if (gotPoints) {
+                        h = Math.sin(Math.PI / 11 * y) * 300 + Math.round(mapPoints[x]) - 300;
+                    }
+                    else h = (x*-40) + Math.sin(Math.PI / 11 * y) * 300 + Math.sin(Math.PI / (ws+1) * 200 * x) * 100 - maxH/2;
                     if (y == 5) points.push({ x: x * (w/ws), y: h });
                     slopeGeometry.vertices[x + y * (ws + 1)].position.z = h;
                 }
@@ -310,6 +297,7 @@ var Game = (function() {
                 var actor = actors[i];
                 this.trackActor(actor);
             }
+            return points;
         },
         // Factories
         createWrappedMaterial: function(rX, rY, img) {
