@@ -15,9 +15,27 @@ var Coordinator = (function() {
             });
         },
         getMapDrawing: function(mapWidth, segments, container, complete) {
-            var cleaners = [];
+            function drawingComplete(path) {
+                wnd.unbind('.drawmap');
+                // todo: accept path
+                var points = [];
+                var steps = segments + 1;
+                var increment = path.length / steps;
+                var drawWidth = paper.view.size.width;
+                var drawHeight = paper.view.size.height;
+                var sizeFactor = (mapWidth / drawWidth) * heightFactor;
+                var halfHeight = drawHeight / 2;
+                for (var i = 0; i < steps; ++i) {
+                    var y = path.getPointAt(i * increment).y;
+                    y = ((drawHeight - y) - halfHeight) * sizeFactor;
+                    points.push(y);
+                }
+                canvas.remove();
+                complete(points);
+            }
             // setup canvas
             var aspect = 10/20;
+            var heightFactor = .5;
             var canvas = $('<canvas>');
             canvas.css({
                 background: '#888888',
@@ -60,24 +78,6 @@ var Coordinator = (function() {
             var tool = new paper.Tool();
             // go draw 
             paper.view.draw();
-            function drawingComplete(path) {
-                wnd.unbind('.drawmap');
-                // todo: accept path
-                var points = [];
-                var steps = segments + 1;
-                var increment = path.length / steps;
-                var drawWidth = paper.view.size.width;
-                var drawHeight = paper.view.size.height;
-                var sizeFactor = mapWidth / drawWidth;
-                var halfHeight = drawHeight / 2;
-                for (var i = 0; i < steps; ++i) {
-                    var y = path.getPointAt(i * increment).y;
-                    y = ((drawHeight - y) - halfHeight) * sizeFactor;
-                    points.push(y);
-                }
-                canvas.remove();
-                complete(points);
-            }
             tool.onMouseDown = function(event) {
                 if (event.point.x > 0 && event.point.x < startZone) {
                     startRect.fillColor = '#aaffaa';
