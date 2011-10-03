@@ -56,7 +56,7 @@ window.showSplash = (function($) {
         else {
             var closer = $('<br/><br/><div style="font-size: x-small">Click the box to hide this message</div>');
             closer.css({cursor: 'pointer'});
-            d.click(function() {
+            $(window).one('mousedown', function() {
                 remove(d);
             });
             d.append(closer);

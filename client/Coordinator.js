@@ -24,7 +24,7 @@ var Coordinator = (function() {
                 cursor: 'pointer'
             });
             var wnd = $(window);
-            wnd.resize(function() {
+            wnd.bind('resize.drawmap', function() {
                 var viewWidth = wnd.width();
                 var viewHeight = wnd.height();
                 if (viewWidth * aspect > viewHeight) viewWidth = viewHeight / aspect;
@@ -46,11 +46,11 @@ var Coordinator = (function() {
             var lastPointX = -1;
             var path = new paper.Path();
             var tool = new paper.Tool();
-            // get crackin
+            // go draw 
             paper.view.draw();
             function drawingComplete(path) {
-                // accept path
-                // pull points
+                wnd.unbind('.drawmap');
+                // todo: accept path
                 var points = [];
                 var steps = segments + 1;
                 var increment = path.length / steps;
