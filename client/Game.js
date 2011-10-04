@@ -118,7 +118,7 @@ var Game = (function() {
                 var actor = this.factory.createSphereActor(Math.random() * 50 + 50, x, y, 0, {material: woodMaterial});
                 this.trackActor(actor);
             }*/
-            for (var i = 0; i < 500; ++i) {
+            /*for (var i = 0; i < 500; ++i) {
                 var pt = Math.round(Math.random() * (points.length - 1));
                 var x = points[pt].x;
                 var y = points[pt].y + 500;
@@ -126,7 +126,7 @@ var Game = (function() {
                 var h = Math.random() * 200 + 25;
                 var actor = this.factory.createCubeActor(w, h, 100, x, y, 0, {material: woodMaterial, density: 0.2});
                 this.trackActor(actor);
-            }
+            }*/
 
             this.state.stats = new Stats();
             this.state.stats.domElement.style.position = 'absolute';
@@ -246,49 +246,53 @@ var Game = (function() {
 
             var slopeWidth = 1000;
             var slopeHalfWidth = slopeWidth / 2;
-            var wallHeight = 5000;
 
-            var wallGeometry = new THREE.PlaneGeometry(w, 1000, ws, 1);
             var slopeGeometry = new THREE.PlaneGeometry(w, 1000, ws, 10);
+            var slopeBottomGeometry = new THREE.PlaneGeometry(w, 1000, ws, 10);
             var points = [];
             var maxH = 300 + 500;
 
             var gotPoints = typeof mapPoints != 'undefined';
-
             for (var x = 0; x < ws + 1; ++x) {
+                var pt = mapPoints[x];
                 for (var y = 0; y < 11; ++y) {
-                    var h;
-                    if (gotPoints) {
-                        h = Math.sin(Math.PI / 11 * y) * 300 + Math.round(mapPoints[x]) - 300;
+                    var extrude = Math.sin(Math.PI / 11 * y); 
+
+                    var xPos = Math.round(pt.x + Math.cos(pt.normal) * (extrude * 300));
+                    var yPos = Math.round(pt.y + Math.sin(pt.normal) * (-extrude * 300));
+                    if (y == 5) {
+                        points.push({x: xPos, y: yPos});
                     }
-                    else h = (x*-40) + Math.sin(Math.PI / 11 * y) * 300 + Math.sin(Math.PI / (ws+1) * 200 * x) * 100 - maxH/2;
-                    if (y == 5) points.push({ x: x * (w/ws), y: h });
-                    slopeGeometry.vertices[x + y * (ws + 1)].position.z = h;
+                    slopeGeometry.vertices[x + y * (ws + 1)].position.x = xPos - w/2;
+                    slopeGeometry.vertices[x + y * (ws + 1)].position.z = yPos;
+                    //slopeGeometry.vertices[x + y * (ws + 1)].position.y += x * 10;
+                    
+                    if (y > 0 && y < 10) {
+                        xPos = Math.round(pt.x + Math.cos(pt.normal) * (-extrude * 300));
+                        yPos = Math.round(pt.y + Math.sin(pt.normal) * (extrude * 300));
+                    }
+                    slopeBottomGeometry.vertices[x + y * (ws + 1)].position.x = xPos - w/2;
+                    slopeBottomGeometry.vertices[x + y * (ws + 1)].position.z = yPos;
                 }
-                var vpTop = wallGeometry.vertices[x].position;
-                var vpBottom = wallGeometry.vertices[x + 1 * (ws + 1)].position;
-                var slopeVec = slopeGeometry.vertices[x + 1 * (ws + 1)].position;
-                vpTop.z = vpBottom.z = slopeHalfWidth;
-                vpTop.y = slopeVec.z;
-                vpBottom.y = slopeVec.z - wallHeight;
             }
 
             var slope = new THREE.Mesh(slopeGeometry, slopeMaterial);
             slope.position.x = w/2 + this.config.mapOffset;
-            slope.doubleSided = false;
+            slope.doubleSided = true;
             slope.rotation.x = -Math.PI / 2;
             this.state.scene.addObject(slope);
 
-            var wall = new THREE.Mesh(wallGeometry, wallMaterial);
-            wall.position.x = w/2 + this.config.mapOffset;
-            wall.doubleSided = true;
-            this.state.scene.addObject(wall);
+            var slopeBottom = new THREE.Mesh(slopeBottomGeometry, wallMaterial);
+            slopeBottom.position.x = w/2 + this.config.mapOffset;
+            slopeBottom.doubleSided = true;
+            slopeBottom.rotation.x = -Math.PI / 2;
+            this.state.scene.addObject(slopeBottom);
 
             var startHeight = 3000;
-            var start = this.factory.createCubeActor(100, wallHeight, slopeWidth, this.config.mapOffset - 50, -wallHeight/2 + points[0].y + startHeight, 0, {fixed: true, material: startMaterial});
+            var start = this.factory.createCubeActor(100, startHeight, slopeWidth, this.config.mapOffset - 50, -startHeight/2 + points[0].y + startHeight, 0, {fixed: true, material: startMaterial});
             this.trackActor(start);
             var endHeight = 3000;
-            var end = this.factory.createCubeActor(100, wallHeight, slopeWidth, this.config.mapOffset + this.config.mapWidth + 50, -wallHeight/2 + points[points.length - 1].y + endHeight, 0, {fixed: true, material: startMaterial});
+            var end = this.factory.createCubeActor(100, startHeight, slopeWidth, this.config.mapOffset + this.config.mapWidth + 50, -startHeight/2 + points[points.length - 1].y + endHeight, 0, {fixed: true, material: startMaterial});
             this.trackActor(end);
             
             // Slope ground

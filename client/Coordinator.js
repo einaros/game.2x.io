@@ -18,17 +18,37 @@ var Coordinator = (function() {
             function drawingComplete(path) {
                 wnd.unbind('.drawmap');
                 // todo: accept path
+                path.simplify();
+                path.smooth();
                 var points = [];
                 var steps = segments + 1;
                 var increment = path.length / steps;
                 var drawWidth = paper.view.size.width;
                 var drawHeight = paper.view.size.height;
-                var sizeFactor = (mapWidth / drawWidth) * heightFactor;
+                var yFactor = (mapWidth / drawWidth) * heightFactor;
                 var halfHeight = drawHeight / 2;
+                var xFactor = mapWidth / path.bounds.width;
+                var xOffset = path.getPointAt(0).x;
                 for (var i = 0; i < steps; ++i) {
-                    var y = path.getPointAt(i * increment).y;
-                    y = ((drawHeight - y) - halfHeight) * sizeFactor;
-                    points.push(y);
+                    var pt = path.getPointAt(i * increment);
+                    var t = path.getTangentAt(i * increment);
+                    var n = path.getNormalAt(i * increment);
+                    points.push({
+                        x: (pt.x - xOffset) * xFactor, 
+                        y: ((drawHeight - pt.y) - halfHeight) * yFactor,
+                        tangent: t == null ? 0 : t.angleInRadians,
+                        normal: n == null ? Math.PI/2 : n.angleInRadians,
+                    });
+                    if (i % 20 == 0 && n != null) {
+                        var p = new paper.Path();
+                        p.strokeColor = 'red';
+                        p.add(new paper.Point(pt.x, pt.y));
+                        n.length = 60;
+                        p.add(new paper.Point(pt.x + n.x, pt.y + n.y));
+                        var startText = new paper.PointText(new paper.Point(pt.x + n.x, pt.y + n.y));
+                        startText.fillColor = 'white';
+                        startText.content = n.angleInRadians;
+                    }
                 }
                 canvas.remove();
                 complete(points);
@@ -93,16 +113,15 @@ var Coordinator = (function() {
                 path.add(event.point);
                 tool.onMouseDrag = function(event) {
                     var pt = event.point;
-                    if (lastPointX > pt.x) {
+                    /*if (lastPointX > pt.x) {
                         pt.x = lastPointX;
-                    }
+                    }*/
                     lastPointX = pt.x;
                     path.add(pt);
                 }
                 tool.onMouseUp = function(event) {
                     tool.onMouseDrag = null;
                     tool.onMouseUp = null;
-                    path.simplify();
                     if (event.point.x > paper.view.size.width - endZone) {
                         endRect.fillColor = '#aaffaa';
                         drawingComplete(path);
@@ -113,7 +132,7 @@ var Coordinator = (function() {
                         showSplash('end your path within the far right rectangle', 1000);
                         return;
                     }
-                }    
+                }
             }
         },
         initGame: function() {
